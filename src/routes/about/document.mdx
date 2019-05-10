@@ -1,8 +1,20 @@
 import styles from './document.module.css'
+import { Link } from 'react-navi'
 
 <div className={styles.Document}>
 
 # About Me
+<div>
+  <Link href='https://github.com/kjgalvan/'>
+    Github
+  </Link> &bull;{' '}
+  <Link href='https://www.linkedin.com/in/kjgalvan/'>
+    LinkedIn
+  </Link> &bull;{' '}
+  <a href='https://devpost.com/kjgalvan'>
+    Devpost
+  </a>
+</div>
 
 <p>
 My name is KJ Galvan and I'm an intern at Pacific Northwest National Laboratory.
@@ -15,5 +27,7 @@ My name is KJ Galvan and I'm an intern at Pacific Northwest National Laboratory.
   I will be working with two other interns on this project and assisting them in learning PNNL specific tooling and standards.
   I'm looking forward to collaborating with them on this project and seeing it through to production.
 </p>
-
+<Link href="/">
+  Return
+</Link>
 </div>
