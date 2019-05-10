@@ -4,7 +4,7 @@ import { Link } from 'react-navi'
 <div className={styles.Document}>
 
 # About Me
-<div>
+<div className={styles.links}>
   <Link href='https://github.com/kjgalvan/'>
     Github
   </Link> &bull;{' '}
@@ -16,17 +16,29 @@ import { Link } from 'react-navi'
   </a>
 </div>
 
-<p>
-My name is KJ Galvan and I'm an intern at Pacific Northwest National Laboratory.
-</p>
-<p>
-  I mostly do front-end web development using React.
-  This summer I've been challenged with revamping an existing website with a new UI and automating the process it supports.
-</p>
+<div className={styles.row}>
+  <div className={styles.left}>
+    <p>
+      My name is KJ Galvan and I'm an intern at Pacific Northwest National Laboratory.
+    </p>
+    <p>
+      I mostly do front-end web development using React.
+      This summer I've been challenged with revamping an existing website with a new UI and automating the process it supports.
+    </p>
+    <p>
+      This entails building a website with React, a basic RESTful API with C#, and a simple database for tracking request history.
+    </p>
+  </div>
+  <div className={styles.right}>
+    <img src="https://i.imgur.com/cInIcax.jpg?" />
+  </div>
+</div>
+
 <p>
   I will be working with two other interns on this project and assisting them in learning PNNL specific tooling and standards.
   I'm looking forward to collaborating with them on this project and seeing it through to production.
 </p>
+
 <Link href="/">
   Return
 </Link>

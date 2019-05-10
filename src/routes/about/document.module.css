@@ -8,6 +8,26 @@
   text-rendering: optimizeLegibility;
 }
 
-.Document div {
+.Document img {
+  border-radius: 1.7rem;
+  display: block;
+  margin: auto;
+  width: 100%;
+}
+
+.links {
   margin-bottom: 2.4rem;
+}
+
+.row {
+  display: flex;
+}
+
+.left {
+  flex: 50%;
+}
+
+.right {
+  flex: 50%;
+  padding: 1.7rem;
 }
