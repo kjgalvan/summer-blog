@@ -13,6 +13,9 @@ function TagIndexPage(props) {
           </li>  
         )}
       </ul>
+      <Link href="/">
+        Return
+      </Link>
     </div>
   )
 }

@@ -34,6 +34,10 @@ function BlogPostLayout({ blogRoot }) {
               </div>
           }}>
             <MDXComponent />
+          <br />
+          <Link href="/">
+            Return
+          </Link>
           </MDXProvider>
           <footer className={styles.footer}>
             <h3 className={styles.title}>

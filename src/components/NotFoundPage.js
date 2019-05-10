@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-navi'
 import styles from './NotFoundPage.module.css'
 
 // Note that create-react-navi-app will always show an error screen when this
@@ -10,6 +11,9 @@ function NotFoundPage() {
   return (
     <div className={styles.NotFound}>
       <h1>404 - Not Found</h1>
+      <Link href="/">
+        Return
+      </Link>
     </div>
   )
 }

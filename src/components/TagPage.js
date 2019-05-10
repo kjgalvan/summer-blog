@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-navi'
 import ArticleSummary from './ArticleSummary'
 import styles from './TagPage.module.css'
 
@@ -13,6 +14,9 @@ function TagPage({ blogRoot, name, routes }) {
           </li>  
         )}
       </ul>
+      <Link href="/">
+        Return
+      </Link>
     </div>
   )
 }
