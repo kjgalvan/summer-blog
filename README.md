@@ -1,4 +1,4 @@
 # summer-blog
-Utilizing create-react-blog to document Summer 2019 internship experience
+Utilizing [create-react-blog](https://github.com/frontarm/create-react-blog) to document Summer 2019 internship experience
 
-Live: https://kjs-summer-blog.netlify.com/
+[Live Demo](https://kjs-summer-blog.netlify.com/)
