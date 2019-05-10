@@ -1,10 +1,10 @@
 export default {
   // The blog's title as it appears in the layout header, and in the document
   // <title> tag.
-  title: "npx create-react-blog",
+  title: "KJ's Blog",
 
-  author: "James K Nelson",
-  description: "A clone of Dan Abramov's overreacted.io using create-react-app-mdx and Navi",
+  author: "KJ Galvan",
+  description: "A blog documenting my Summer 2019 internship experience and project progression.",
 
   // The number of posts to a page on the site index.
   indexPageSize: 10,
