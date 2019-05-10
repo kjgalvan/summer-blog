@@ -31,3 +31,18 @@
   flex: 50%;
   padding: 1.7rem;
 }
+
+@media (max-width: 768px) {
+  .row {
+    display: block;
+  }
+
+  .left {
+    display: block;
+  }
+
+  .right {
+    display: block;
+    padding: 0 1.7rem 1.7rem 1.7rem;
+  }
+}
