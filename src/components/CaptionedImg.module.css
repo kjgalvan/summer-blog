@@ -1,0 +1,12 @@
+.image {
+  border-radius: 1.7rem;
+  display: block;
+  margin: auto;
+  width: 100%;
+}
+
+.caption {
+  display: block;
+  text-align: center;
+  margin-bottom: 1rem;
+}
