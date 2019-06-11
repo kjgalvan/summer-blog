@@ -1,0 +1,80 @@
+import styles from './document.module.css'
+import initReq from './init_req.jpg'
+import rossLecture from './ross_lecture.jpg'
+import team from './team.jpg'
+import mockup from './mockup.png'
+import CaptionedImg from '../../../components/CaptionedImg.js'
+
+<div>
+
+## First off...
+
+**What are we building?** Our customer, Jason, has requested help in automating the creation of Cloud Accounts (AWS, Azure, Google) for researchers here at PNNL.
+
+Currently, Jason and his team have a Python script that **they must run manually** with a number of command line arguments to create the accounts from the information provided (Charge Code, Account Owner, Project Name, etc).
+
+They gather this relevant information using an old outdated web form that performs **no validation on the fields it gathers**. If a researcher mistypes a charge code, for instance, the error will be kept when the form is submitted.
+
+Upon submitting the form, an email is sent to Jason with all the gathered information and from this email Jason must copy and paste all the relevant parameters in the correct order and run his script from his machine. **This is annoying.**
+
+**The Solution:** Have a team of interns rewrite the web application so that it performs validation checking and calls the script automatically. Store the requests with the generated account IDs and automatically notify the relevant parties via email. Consider adding a page where a logged in user can view their requests and cloud accounts.
+
+<CaptionedImg className={styles.mockup} src={mockup} alt="Mockup of web application" caption="Mockup by Amruth" />
+
+**Simple right?** Let's get that team of interns, then.
+
+## Say hi to the team!
+
+<CaptionedImg src={team} alt="team" caption="GetCloud Team: Amruth, Me, and Manny" />
+
+**With the introduction of Amruth on June 5th**, our project has officially begun. Amruth and I will work on the project full-time while Manny helps us part-time.
+
+We sat down as a team alongside our mentors and customer and discussed what our project scope is and who will help out with what.
+
+**The Outcome:** Amruth will build the front-end with React using PNNL's Create React App custom script, I will build the middle layer that runs the Python script, and Manny will build the database model and design it with future use-cases in mind.
+
+**Still simple, right?** Right??
+
+## Documentation incoming...
+
+<CaptionedImg src={initReq} alt="final whiteboard of initial requirements" caption="Spoiler Alert: Not so simple." />
+
+It turns out the project is seemingly simple from the description, but actually requires **a lot of code**.
+
+As we worked the first step of any software project, **requirements gathering**, we discovered a number of technical problems that we will have to architect solutions for. We all gathered in Amruth's cubicle and put all the known requirements (alongside some Phase 2 work) on a stolen whiteboard.
+
+**Here are our findings...**
+
+We can utilize some reusable React components to do a lot of the presentation work for us, but validation will require reading in data from PNNL's various tables. The middle layer will be written with .NET, but running the script will be a challenge as the web servers at PNNL do not have Python installed for security purposes. The backend database should track whether the cloud account is open or closed, but this will require syncing our database to data exposed by the cloud providers.
+
+All of these problems are tricky to solve elegantly.
+
+## Why don't we make it even more complicated?
+
+As interns, we are interested in picking up the latest and greatest technology. We wish to further our own growth by experimenting with the newest standards our industry is adopting. Two of the biggest and most technically challenging of these new standards being pursued by PNNL is **Event Driven Architecture** and **Clean Architecture**.
+
+<CaptionedImg src={rossLecture} alt="event driven architecture lecture from Ross" caption="Event Driven Architecture Lecture by Ross" />
+
+Luckily for us, **we have an expert!**
+
+Although not formally one of our mentors, Ross has been a huge help in explaining what EDA and Clean Architecture are and how they are used at the Lab. Although we had gathered our initial requirements around a traditional RESTful API and SQL database, **Clean Architecture is a different paradigm altogether.**
+
+Under EDA, the HTTP requests are generated automatically based on the entities described by the developer. **Entities are our data model**, and we will build them to store all the relevant request information.
+
+Once an HTTP request comes in, we will publish an event to modify an entity. Under Clean Architecture, the **database is abstract** so that our middle layer is not tied to a specific database technology.
+
+Publishing to the event store is a solved problem at PNNL and is within our reach for this project. We will also write an event subscriber that will react to the event being published and run the Python executable with the correct parameters.
+
+Due to having to run the Python script, **command line injection** is a concern. We will have to write strict validation methods that will ensure a user cannot gain free access to our command line.
+
+Since Python is not accessible from the standard web servers, we will also have to consider building a virtual machine that can run this part of the code. We are also looking into [IronPython](https://ironpython.net/) which should be able to compile the script into a DLL which our .NET application can consume without needing Python installed.
+
+##  In conclusion
+
+We still have many problems to resolve before we write even **a single line of code**. We have a meeting this Thursday with our customer where we will go over our requirements specification and pitch our project design.
+
+We also need to figure out our tooling, what methodology we will use for development, and how we will implement CI/CD pipelines with our current design.
+
+**Stay tuned for more!**
+
+</div>
