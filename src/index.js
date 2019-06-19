@@ -9,7 +9,7 @@ import * as serviceWorker from "./serviceWorker";
 
 // `register()` is responsible for exporting your app's pages and App
 // component to the static renderer, and for starting the app with the
-// `main()` function when running within a browser.
+// `main()` function when running within a browser. test
 register({
   // Specify the pages that navi-app should statically build, by passing in a
   // Switch object.
