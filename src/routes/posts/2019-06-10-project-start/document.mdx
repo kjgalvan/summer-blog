@@ -45,11 +45,11 @@ As we worked the first step of any software project, **requirements gathering**,
 
 **Here are our findings...**
 
-We can utilize some reusable React components to do a lot of the presentation work for us, but validation will require reading in data from PNNL's various tables. The middle layer will be written with .NET, but running the script will be a challenge as the web servers at PNNL do not have Python installed for security purposes. The backend database should track whether the cloud account is open or closed, but this will require syncing our database to data exposed by the cloud providers.
+We can utilize some reusable React components to do a lot of the presentation work for us, but validation will require reading in data from PNNL's databases. The middle layer will be written with .NET, but running the script will be a challenge as the web servers at PNNL do not have Python installed for security purposes. The backend database should track whether the cloud account is open or closed, but this will require syncing our database to data exposed by the cloud providers.
 
 All of these problems are tricky to solve elegantly.
 
-## Why don't we make it even more complicated?
+## So what kind of architecture will we use?
 
 As interns, we are interested in picking up the latest and greatest technology. We wish to further our own growth by experimenting with the newest standards our industry is adopting. Two of the biggest and most technically challenging of these new standards being pursued by PNNL is **Event Driven Architecture** and **Clean Architecture**.
 
@@ -57,9 +57,9 @@ As interns, we are interested in picking up the latest and greatest technology. 
 
 Luckily for us, **we have an expert!**
 
-Although not formally one of our mentors, Ross has been a huge help in explaining what EDA and Clean Architecture are and how they are used at the Lab. Although we had gathered our initial requirements around a traditional RESTful API and SQL database, **Clean Architecture is a different paradigm altogether.**
+Although not formally one of our mentors, Ross has been a huge help in explaining what EDA and Clean Architecture are and how they are used at the Lab. Although we had gathered our initial requirements around a traditional CRUD application, **Clean Architecture is a different paradigm altogether.**
 
-Under EDA, the HTTP requests are generated automatically based on the entities described by the developer. **Entities are our data model**, and we will build them to store all the relevant request information.
+Using PNNL Application Core (referred to as PAC), the HTTP requests are setup easily based on the entities described by the developer. **Entities are our data model**, and we will build them to store all the relevant request information.
 
 Once an HTTP request comes in, we will publish an event to modify an entity. Under Clean Architecture, the **database is abstract** so that our middle layer is not tied to a specific database technology.
 
