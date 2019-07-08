@@ -1,3 +1,86 @@
+import CaptionedImg from '../../../components/CaptionedImg.js'
+import swagger from './swagger.png'
+
 <div>
+
+## So where are our endpoints?
+
+To use our framework, we customize a default Startup.cs file that brings in every dependency and provides options for our API.
+
+To add endpoints that store CloudAccount entities in our view store, we add the following lines of code in our startup to configure our provided services:
+
+``` csharp
+services.AddJsonApi(options =>
+{
+    options
+        .UseDomainTypes()
+        .AddEndpointsFor<CloudAccount>(OperationTypes.All)
+    ;
+});
+```
+
+Our application is storing our data in Couchbase by default using PAC. By invoking AddJsonApi we have created an API following the Json:Api specification that will create, update, delete, and fetch CloudAccount entities within our Couchbase database.
+
+Now it is time to add Swagger, a service which will allow us to test our endpoints. To generate our Swagger service, we add the following code:
+
+``` csharp
+services.AddSwaggerGen(options =>
+{
+    options
+        .AddJsonApi(Configuration.GetSection("Swagger").GetSection("JsonApi"))
+});
+```
+
+... and just like that, we have a functioning basic API!
+
+<CaptionedImg src={swagger} caption="Tada! Endpoints for CloudAccount entities." alt="picture of Swagger tool for testing API endpoints" />
+
+## Custom Command Handling
+
+If we had no requirements around data lookups, our .NET development would almost end here besides some basic validators. Luckily for us, we have a requirement to look up certain people of interest and a directorate based on the charge code provided.
+
+This means that we need to handle the command CreateEntity for our CloudAccount entity ourselves. PAC uses a default handler that stores the data in the Couchbase view store and publishes an event describing this change. We would like to override this handler and add in our own custom logic before storing the data and publishing the event.
+
+To do this, we must inherit from the CreateEntityCommandHandler and implement the OnCreateAsync method ourselves. We can use the same code for creating the entity and publishing the event, but we can also add our own code in to perform database lookups from relevant views and augment the entity being created.
+
+Here is some of the code for our custom command handler:
+
+``` csharp
+public class CloudAccountCreateHandler : CreateEntityHandlerBase
+{
+    public override bool CanHandle(CreateEntity command, Context context)
+    {
+        if (command == null || context == null)
+        {
+            return false;
+        }
+
+        return command.Type == typeof(CloudAccount);
+    }
+
+    protected override async Task<EntityCreated> OnCreateAsync(CreateEntity command, Context context, CancellationToken cancellationToken) {
+
+        . . .
+
+        // Validate command
+        var validators = Provider
+            .GetServices<ICommandValidator>()
+            .Where(validator => validator.CanHandle(command, context))
+            .ToArray();
+
+        . . .
+    }
+}
+```
+
+This validates the commands coming through and only handles them with this handler if they are of type CloudAccount.
+
+Now, to register our custom command handler in PAC, we add the following code to our Startup.cs file:
+
+``` csharp
+services.AddSingleton<ICommandHandler, CloudAccountCreateHandler>();
+```
+
+... and there we have it! Now when I post a new CloudAccount, this command handler is used instead of the default. I have confirmed this with breakpoints. In our next post, we will add the data lookups we require before we store the CloudAccount in Couchbase.
 
 </div>

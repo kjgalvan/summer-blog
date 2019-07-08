@@ -1,0 +1,110 @@
+<div>
+
+## How do we save our requests?
+
+As discussed in the first post on this blog, we have agreed to create two API endpoints for our custom to use to fulfill requests. One for getting submitted requests, and one for updating them as fulfilled. For our own purposes, we will also need an endpoint for saving new requests.
+
+Luckily for us, PNNL has created a framework for spinning up a backend quickly that follows the architecture standards we are wishing to implement: Clean Architecture and Event Driven Architecture.
+
+PNNL Application Core, or **PAC**, allows a developer to define their own entities (objects that have meaning to users) and to generate endpoints for creating, updating, deleting, and fetching these entities. PAC abstracts the persistence of this data within a view store and even publishes events based on this data when commands are handled.
+
+The flow of data for submitting a request in our application is this:
+
+1. A user submits a form to request a cloud account
+
+2. Our API receives a POST request to create this request for our customer to access
+
+3. The POST request is handled by the CreateEntity command which abstracts the API specification (POST/PATCH/GET) from the business logic
+
+4. The request entity is created and stored within our view store
+
+5. An event is published announcing that the request was created.
+
+## What does our data look like?
+
+Our primary entity and resource we will build API endpoints around is the **CloudAccount**. We debated between having both a Request entity and CloudAccount entity and just having the CloudAccount entity because accounts are not created instantly when request are made. Ultimately though, Request and CloudAccount would have the same information (data filled in from the form) except CloudAccount would have an account ID. Due to the overlapping data, we decided to have requests just be CloudAccounts that are in Pending status rather than entirely different entities.
+
+Here is our data model for a CloudAccount:
+
+``` csharp
+[DataContract]
+public class CloudAccount: EntityBase, ICloneable
+{
+    [DataMember]
+    public string AccountId { get; set; }
+
+    [DataMember]
+    public List<Person> Owners { get; set; }
+
+    [DataMember]
+    public List<Person> Users { get; set; }
+
+    [DataMember]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AccountType AccountType { get; set; }
+
+    [DataMember]
+    public string Justification { get; set; }
+
+    [DataMember]
+    public Project Project { get; set; }
+
+    [DataMember]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AccountStatus Status { get; set; }
+
+    [DataMember]
+    public Person Requestor { get; set; }
+}
+```
+
+We are using two enumerated values, AccountType and AccountStatus, to track information about our accounts and we are using another class to store information about the project tied to the CloudAccount:
+
+``` csharp
+[DataContract]
+public class Project
+{
+    [DataMember]
+    public string Title { get; set; }
+
+    [DataMember]
+    public string ShortName { get; set; }
+
+    [DataMember]
+    public Person TechnicalContact { get; set; }
+
+    [DataMember]
+    public string ChargeCode { get; set; }
+
+    [DataMember]
+    public Person Owner { get; set; }
+
+    [DataMember]
+    public Person FinancePerson { get; set; }
+
+    [DataMember]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public Directorate Directorate { get; set; }
+
+    [DataMember]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public List<DataLevel> DataLevels { get; set; }
+
+    [DataMember]
+    public bool SecurityPlan { get; set; }
+
+    [DataMember]
+    public bool ExternalFacing { get; set; }
+
+    [DataMember]
+    public string Description { get; set; }
+}
+```
+
+We are also using a class to represent people in our application. As you can see, the difference between our Project and CloudAccount classes is the inheritance of CloudAccount from EntityBase.
+
+By inheriting from EntityBase, we tell PAC that we intend to build endpoints around CloudAccount entities. With this code, we should be able to create and store requests in the future using our framework.
+
+This is the power of Domain Driven Design / Clean Architecture: the ability to begin with domain entities that will infrequently change and work our way out towards building a functioning API.
+
+</div>
