@@ -1,0 +1,97 @@
+
+import styles from './document.module.css'
+import CaptionedImg from '../../../components/CaptionedImg.js'
+import jira from './jira.png'
+
+<div>
+
+## Approved!
+
+This customer accepted our design and now we can finally code. Also, we learned the Python script is actually a PowerShell script! This simplifies our requirements as we do not have to figure out how to install Python
+
+Additionally, we agreed on a formal Phase 1 approach wherein we provide the Cloud Services team two API endpoints: A GET request that will fetch all unfulfilled requests from our web application and a PATCH request that will update them all to fulfilled and provide the relevant Account ID for each.
+
+This is our handshake agreement to integrate with their existing script since fully automating the process will require routing to Approvals so that accounts are not charging money unexpectedly. In the wise words of Professor Corrigan: **That’s Phase 2.**
+
+## Time to track some tasks
+
+<CaptionedImg className={styles.jira} src={jira} alt="A screengrab of our JIRA board" caption="JIRA: Using Agile/Scrum to plan our work." />
+
+To organize our work, we picked Scrum as our methodology. We arrange our work into smaller tasks (stories) that are tied to larger deliverables (epics). We all then agree on how difficult a task appears to be and assign points to them. The more points, the more complex we expect a task to be.
+
+Using this system we can keep all our work visible and convene daily to discuss our tasks and any blockers we may experience.
+
+## Building a Front-End
+
+As a developer familiar in React, I took it upon myself to teach Amruth the way we do React here at PNNL. He spent his first few days on React tutorials, which meant he had a solid understanding to begin with. I linked him to the documentation for our reusable PNNL specific components and had him familiarize himself with what components were available to our web app.
+
+Then, because I believe in learning more than is necessarily required for a task, I paired with Amruth to teach him [React Hooks](https://reactjs.org/docs/hooks-reference.html). In May I gave a talk to the PNNL Javascript Community of Practice on React Hooks, so it was wonderful to get to use some of the technology I preach about and pass the knowledge to another in a concrete way. Hooks let a React developer **encapsulate some behavior** and reuse it when writing new components.
+
+React comes with its own hooks for behavior it wishes to reuse. Looking among these, we decided to use the useReducer hook for our state management. This is because our application will have **a lot of state to track:** values of inputs, whether inputs have been touched or not, and if the inputs are valid.
+
+We could use Redux to track this state, but since the state will be localized to the page the form is on, it really is uncouth to use Redux in this situation. Instead, we will track our state by building a state object and calling a function to change this state when need be.
+
+This pattern is the same as Redux essentially, but is performed at the component level and not application level, so it is the **best of both worlds.**
+
+## Getting hooked on hooks
+
+Here is our initial state and our function to change state:
+
+```jsx
+const initState = {
+  values: {
+    name: '',
+    shortName: '',
+    contact: '',
+  }
+}
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'setValue':
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.field]: action.value
+        }
+      };
+    case default:
+      return state;
+  }
+}
+```
+
+These kinds of functions are very common in Redux and are known as **reducers.** They are pure functions that take in the old state and an action object and returns the new state without modifying the old one.
+
+Actions have a type field that determines which case in the switch statement gets performed and any other fields relevant to the new state. In our example, we have two fields besides type that are associated with an action of type setValue: field and value. This is because we want to modify the specific field in our state object (like name) and pass in the current value of the HTML input element.
+
+To utilize this reducer and initial state, we must call the useReducer hook which has this prototype:
+
+```jsx
+const [state, dispatch] = useReducer(reducer, initialArg, init);
+```
+
+We get the state object and dispatch function from the hook and pass in the reducer and initial state (we will not need the optional init parameter). The state object is exactly like the initial state object we built, except it will be updated and maintained by the hook.
+
+To update the state, we dispatch actions by calling the dispatch function with the action we wish to perform as the argument:
+
+```jsx
+<InputFormControl
+  label="Project Name"
+  value={state.values.name}
+  onChange={event =>
+    dispatch({
+      type: 'setValue',
+      field: 'contact',
+      value: event.target.value
+    })
+  }
+/>
+```
+
+InputFormControl is a custom React component built by Amruth which just combines the HTML input with a label. When the value changes, the onChange event is called and this is where we dispatch our action to update the value in the state. Since we are now controlling this input, we are required to pass in the value from our state object or else the change will be lost.
+
+Now whenever we need to add a field to the form, it will be super easy to do so. We just add a field to our initial object and add an InputFormControl with a different label and field name for the value prop and action being dispatched, which is a copy-paste job with four small minor modifications. This is the benefit React brings us: **code reuse.**
+
+</div>
