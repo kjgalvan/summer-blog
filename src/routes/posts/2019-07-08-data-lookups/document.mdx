@@ -1,0 +1,214 @@
+<div>
+
+## Back to our requirements
+
+As part of our initial requirements, our customer requested that we look up information based on the charge code provided by the requestor as well find out information about the requestor themselves.
+
+The goal of our project is to integrate with the existing backend script by collecting the requested cloud accounts from our frontend and delivering this information via API endpoints.
+
+Part of the information our customer would like is not directly inputted by our users but looked up using PNNL's Operation Warehouse database.
+
+## Using Operations API to fetch information
+
+To make the lookup easy, we decided to use an existing Operations API. This API has endpoints to collect all the different information pieces we need tied to a charge code: the directorate, finance person, and charge code owner.
+
+It also allows us to lookup more information about the requestor using their Hanford ID. Luckily for us, PAC has the utility service class IJsonApiLinkFactory for consuming JSON APIs.
+
+Here is the code for looking up information for the logged in user:
+
+``` csharp
+private async Task<CreateEntity> GetRequestorAsync(CreateEntity command, Context context)
+{
+    // Get logged in user
+    string hanfordId = context.User.Identities
+        .Where(claimsIdentity => claimsIdentity.AuthenticationType == "ActiveDirectory")
+        .FirstOrDefault().Claims
+        .FirstOrDefault().Value;
+
+    // Build URI for fetching information based on logged in user's Hanford ID
+    var link = Provider.GetRequiredService<IJsonApiLinkFactory>()
+        .For<Ops.Person>()
+        .CreateResourceLink<Ops.Person, Error>()
+        .IdentifiedBy(hanfordId);
+
+    // Filter for only the email and name
+    List<string> fields = new List<string>() { "email", "name" };
+    KeyValuePair<string, IEnumerable<string>> selectOptions = new KeyValuePair<string, IEnumerable<string>>("person", fields);
+
+    var builder = link.Fetch()
+        .Select(selectOptions);
+
+    var clients = Provider.GetRequiredService<IHttpClientFactory>();
+
+    // Send the request
+    using (var client = clients.CreateClient())
+    {
+        using (var request = builder.Build())
+        using (var response = await client.SendAsync(request))
+        {
+            Assert.IsTrue(response.IsSuccessStatusCode);
+
+            Person person = await link.ReadAsync(response);
+
+            // Add requestor information from response to our command to store data
+            command.Document.Replace("requestor", person);
+            return command;
+        }
+    }
+}
+```
+
+For every lookup we must perform, we reuse the same pattern to fetch the appropriate data. We placed this code in our custom command handler for when we create entities.
+
+Now when we POST a request from our frontend, our data lookups are performed automatically and augment the data in our database.
+
+Here is an example JSON POST request body:
+
+``` javascript
+{
+  "jsonApi": {
+    "version": "string"
+  },
+  "data": {
+    "type": "cloudaccount",
+    "attributes": {
+      "owners": [
+        {
+          "email": "kaitlyn.galvan@pnnl.gov",
+          "firstName": "KJ",
+          "lastName": "Galvan",
+          "hanfordId": "6064343"
+        },
+        {
+          "email": "john.doe@gmail.com",
+          "firstName": "John",
+          "lastName": "Doe",
+          "hanfordId": "1234567"
+        }
+      ],
+      "users": [
+        {
+          "email": "amruth.gorantla@pnnl.gov",
+          "firstName": "Amruth",
+          "lastName": "Gorantla",
+          "hanfordId": "7654321"
+        }
+      ],
+      "accountType": "AzureGov",
+      "justification": "I want government!",
+      "status": "Requested",
+      "project": {
+        "title": "Example Project",
+        "shortName": "ABC",
+        "technicalContact": {
+          "email": "emmanuel.bonilla@pnnl.gov",
+          "firstName": "Manny",
+          "lastName": "Bonilla",
+          "hanfordId": "2345678"
+        },
+        "chargeCode": "ND4749",
+        "dataLevels": ["BusinessSensitive", "OfficialUseOnly"],
+        "securityPlan": "true",
+        "externalFacing": "false",
+        "description": "An example project."
+      }
+    }
+  }
+}
+```
+
+And here is its following response:
+
+``` javascript
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "links": {
+    "self": "https://getclouddev.pnl.gov/api/jsonapi/cloudaccounts"
+  },
+  "data": {
+    "type": "cloudaccount",
+    "id": "ab9aec2848e14c9782dfe9b5b5dadba2",
+    "attributes": {
+      "accountId": null,
+      "owners": [
+        {
+          "hanfordId": "6064343",
+          "email": "kaitlyn.galvan@pnnl.gov",
+          "firstName": "KJ",
+          "lastName": "Galvan"
+        },
+        {
+          "hanfordId": "1234567",
+          "email": "john.doe@gmail.com",
+          "firstName": "John",
+          "lastName": "Doe"
+        }
+      ],
+      "users": [
+        {
+          "hanfordId": "7654321",
+          "email": "amruth.gorantla@pnnl.gov",
+          "firstName": "Amruth",
+          "lastName": "Gorantla"
+        }
+      ],
+      "accountType": "AzureGov",
+      "justification": "I want government!",
+      "project": {
+        "title": "Example Project",
+        "shortName": "ABC",
+        "technicalContact": {
+          "hanfordId": "2345678",
+          "email": "emmanuel.bonilla@pnnl.gov",
+          "firstName": "Manny",
+          "lastName": "Bonilla"
+        },
+        "chargeCode": "ND4749",
+        "chargeCodeOwner": {
+          "hanfordId": "0109612",
+          "email": "philip.george@pnnl.gov",
+          "firstName": "Phil",
+          "lastName": "George"
+        },
+        "financePerson": {
+          "hanfordId": "0470740",
+          "email": "amy.gadd@pnnl.gov",
+          "firstName": "Amy",
+          "lastName": "Gadd"
+        },
+        "directorate": {
+          "name": "Comm & Information Technology",
+          "abbreviation": "COMM&IT"
+        },
+        "dataLevels": [
+          "BusinessSensitive",
+          "OfficialUseOnly"
+        ],
+        "securityPlan": true,
+        "externalFacing": false,
+        "description": "An example project."
+      },
+      "status": "Requested",
+      "userAgreement": null,
+      "requestor": {
+        "hanfordId": "6064353",
+        "email": "kaitlyn.galvan@pnnl.gov",
+        "firstName": "KJ",
+        "lastName": "Galvan"
+      },
+      "id": "ab9aec2848e14c9782dfe9b5b5dadba2",
+      "concurrencyToken": "0",
+      "lastModifiedOn": "2019-07-31T10:57:47Z"
+    },
+    "links": {
+      "self": "https://getclouddev.pnl.gov/api/cloudaccounts/ab9aec2848e14c9782dfe9b5b5dadba2"
+    }
+  }
+}
+```
+
+... and you will find we have added the requestor, directorate, chargeCodeOwner, and financePerson through our lookups!
+
+</div>

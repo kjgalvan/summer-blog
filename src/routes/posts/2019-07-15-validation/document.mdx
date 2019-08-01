@@ -1,0 +1,214 @@
+<div>
+
+## So what about validation?
+
+Luckily for us, we've baked a lot of validation into the front end. We've only allowed submission of Cloud Account requests if certain fields are not null.
+
+Though, a wise developer once told me that your API is your application and any validation has to be done in the API if you want to consider it true validation.
+
+As I'm getting used to saying, though, PAC has a solution for that!
+
+## Custom command validation
+
+In PAC, we can inherit from the CommandValidatorBase and perform our own validation when creating CloudAccount entities:
+
+``` csharp
+public class CloudAccountCreate : CommandValidatorBase<CreateEntity>
+{
+    protected override async Task<IEnumerable<Fault>> OnValidateAsync(IEntity entity, CreateEntity command, Context context)
+    {
+        var faults = new List<Fault>();
+
+        if (!(entity is CloudAccount cloudAccount))
+        {
+            return faults;
+        }
+
+        var clone = cloudAccount.Clone();
+        var operations = command.Operations;
+        // Apply instructions
+        var document = new JsonPatchDocument(operations, command.Document.ContractResolver);
+
+        try
+        {
+            document.ApplyTo(clone);
+        }
+        catch (JsonPatchException patchException)
+        {
+
+            Logger.LogDebug(
+            "[<{CorrelationId}/{CommandId}>] {Validator} Can not apply Patch {@operations} to entity of type {type} {@data}",
+            context.CorrelationId,
+            command.Id,
+            GetType().Name,
+            operations,
+            command.GetType().Name,
+            clone);
+            return new Fault[]
+            {
+                new InvalidCommandFault(patchException.Message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid patch operation",
+                    Detail = patchException.Message
+                }
+            };
+        }
+
+        return await clone.Validate(BoundedContext, context);
+    }
+}
+```
+
+## Extending CloudAccount
+
+As you can see in the above code, we are calling a Validate method on a CloudAccount entity. To do this, we require an extension.
+
+In this Validate() method is where the code to check for null values will be.
+
+``` csharp
+public static class CloudAccountExtentions
+{
+    public static Task<IEnumerable<Fault>> Validate(this CloudAccount clone, IBoundedContext BoundedContext, Context context)
+    {
+        var faults = new List<Fault>();
+
+        if (clone.AccountType == Enums.AccountType.Null)
+        {
+            var message = $"The {nameof(CloudAccount)} must have a valid account type specified in the Property {nameof(CloudAccount)}.{nameof(CloudAccount.AccountType)}";
+            faults.Add(new PropertyFault(message)
+            {
+                Code = CoreErrorCodes.Entity.BadRequest,
+                Title = "Invalid operation",
+                Detail = message
+            });
+        }
+
+        if (clone.Owners == null)
+        {
+            var message = $"The {nameof(CloudAccount)} must have at least one valid account owner specified in the Property {nameof(CloudAccount)}.{nameof(CloudAccount.Owners)}";
+            faults.Add(new PropertyFault(message)
+            {
+                Code = CoreErrorCodes.Entity.BadRequest,
+                Title = "Invalid operation",
+                Detail = message
+            });
+        }
+
+        if (clone.Users == null)
+        {
+            var message = $"The {nameof(CloudAccount)} must have at least one valid account user specified in the Property {nameof(CloudAccount)}.{nameof(CloudAccount.Users)}";
+            faults.Add(new PropertyFault(message)
+            {
+                Code = CoreErrorCodes.Entity.BadRequest,
+                Title = "Invalid operation",
+                Detail = message
+            });
+        }
+
+        if (clone.Project == null)
+        {
+            var message = $"The {nameof(CloudAccount)} must have a valid charge code specified in the Property {nameof(CloudAccount)}.{nameof(CloudAccount.Project)}";
+            faults.Add(new PropertyFault(message)
+            {
+                Code = CoreErrorCodes.Entity.BadRequest,
+                Title = "Invalid operation",
+                Detail = message
+            });
+        }
+        else
+        {
+            if (clone.Project.ChargeCode == null)
+            {
+                var message = $"The {nameof(CloudAccount)} must have a valid charge code specified in the Property {nameof(CloudAccount)}.{nameof(Project)}.{nameof(Project.ChargeCode)}";
+                faults.Add(new PropertyFault(message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid operation",
+                    Detail = message
+                });
+            }
+
+            if (clone.Project.Description == null)
+            {
+                var message = $"The {nameof(CloudAccount)} must have at least one valid account user specified in the Property {nameof(CloudAccount)}.{nameof(Project)}.{nameof(Project.Description)}";
+                faults.Add(new PropertyFault(message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid operation",
+                    Detail = message
+                });
+            }
+
+            if (clone.Project.Title == null)
+            {
+                var message = $"The {nameof(CloudAccount)} must have a valid project name specified in the Property {nameof(CloudAccount)}.{nameof(Project)}.{nameof(Project.Title)}";
+                faults.Add(new PropertyFault(message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid operation",
+                    Detail = message
+                });
+            }
+
+            if (clone.Project.ShortName == null)
+            {
+                var message = $"The {nameof(CloudAccount)} must have a valid project short name specified in the Property {nameof(CloudAccount)}.{nameof(Project)}.{nameof(Project.ShortName)}";
+                faults.Add(new PropertyFault(message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid operation",
+                    Detail = message
+                });
+            }
+
+            if (clone.Project.TechnicalContact == null)
+            {
+                var message = $"The {nameof(CloudAccount)} must have a valid technical contact specified in the Property {nameof(CloudAccount)}.{nameof(Project)}.{nameof(Project.TechnicalContact)}";
+                faults.Add(new PropertyFault(message)
+                {
+                    Code = CoreErrorCodes.Entity.BadRequest,
+                    Title = "Invalid operation",
+                    Detail = message
+                });
+            }
+        }
+
+        return Task.FromResult<IEnumerable<Fault>>(faults);
+    }
+}
+```
+
+Faults are custom exceptions built into PAC and allow for accurate error messaging.
+
+In this case, if a user tries to use the POST operation with missing values, they will receive a relevant error.
+
+As for an additional piece of validation, when we fetch information about charge codes (see data lookup post), we should augment that function to ensure that the charge code is active.
+
+Here is what the network request looks like with proper error handling:
+
+``` csharp
+using (var client = clients.CreateClient())
+{
+    using (var request = chargeBuilder.Build())
+    using (var response = await client.SendAsync(request))
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new PropertyFault($"Unable to fetch information for the following Charge Code: {project.ChargeCode}");
+        }
+
+        // Set charge code owner inside project from fetched data
+        charge = await chargeLink.ReadAsync(response);
+
+        if (!charge.IsActive)
+        {
+            throw new PropertyFault($"Inactive Charge Code: {project.ChargeCode}");
+        }
+
+        project.ChargeCodeOwner = charge.Custodian;
+    }
+}
+```
+
+</div>

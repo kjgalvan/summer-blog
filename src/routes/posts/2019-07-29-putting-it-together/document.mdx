@@ -1,0 +1,54 @@
+import styles from './document.module.css'
+import CaptionedImg from '../../../components/CaptionedImg.js'
+import filtering from './filtering.png'
+import getcloud from './getcloud.png'
+import requests from './requests.png'
+import admin from './admin.png'
+
+<div>
+
+## Our final result!
+
+<CaptionedImg className={styles.img} src={getcloud} caption="Our complete form." alt="picture of GetCloud website" />
+
+There we have it! A fully functioning form and it is live on our dev site. You can also see LaunchBar and Scout on the left and very top which came with our PNNL CRA custom script.
+
+Upon submission of valid form, the website sends a POST request that creates the Cloud Account in our database.
+
+## What about the other page?
+
+As you can see, we have a My Requests page for users to view the status of their requests.
+
+To allow this to work, we have to use an OData query on the GET Cloud Account request to filter the Cloud Account requests based on the logged in user's Hanford Id.
+
+Here is an example of this in action in Swagger:
+
+<CaptionedImg className={styles.img} src={filtering} caption="Looking at the curl example gives us the correct url to fetch from." alt="picture of Swagger tool using filter field" />
+
+The results from this GET request are then nicely displayed in the following table on that page:
+
+<CaptionedImg className={styles.img} src={requests} caption="Requests filtered for only the logged in user. What a miracle!" alt="picture of GetCloud My Requests dashboard" />
+
+## I spy an Admin page
+
+Well, this one is a bit cheating since I have not yet completed the API bootstrapping code which will make the User Agreement available as an entity to PATCH.
+
+But Amruth, being the awesome developer that he is, has gone ahead and built an Admin dashboard which will eventually only be available to users in the correct role.
+
+It's annoying to have to go back and change static content for a customer, especially if the original developers are not there or the documentation is lacking.
+
+Instead, we should empower the customer to change content and configure their site through Admin tools. Our phase one Admin tool will allow administrators to update the wording of the User Agreement:
+
+<CaptionedImg className={styles.img} src={admin} caption="A simple yet effective design." alt="picture of GetCloud Admin dashboard" />
+
+## That's all folks!
+
+It's been a great journey and there is still some work to do to wrap up this project, but we've reached all the phase one functionalities we wished to achieve.
+
+Jason is able to gather all submitted requests and patch them as fulfilled after he executes his script for each request.
+
+It's been wonderful to build a tool that will hopefully save time and stress as more and more researchers look towards the cloud for their tooling.
+
+Thank you for reading!
+
+</div>

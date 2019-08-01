@@ -1,0 +1,140 @@
+import CaptionedImg from '../../../components/CaptionedImg.js'
+import taskgroup from './taskgroup.png'
+import pipeline from './pipeline.png'
+
+<div>
+
+## Azure DevOps to the rescue
+
+So, we've gotten to the point where we should deploy our code. Yay! Luckily for us, our git repo has been hosted on Azure DevOps since the first commit.
+
+Azure DevOps understands the importance of build and deployment pipelines, so getting our website online should be fairly simple.
+
+## Step One: The Builds
+
+DevOps uses YAML to specify our build scripts.
+
+Here is the build script for our frontend repository:
+
+``` yaml
+trigger:
+- develop
+- release/*
+- master
+
+pool:
+  name: On-premises
+  demands: npm
+
+steps:
+- task: Npm@1
+  name: npm_install
+  displayName: 'Install Node Packages'
+  continueOnError: false
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'install --registry https://npm.pnnl.gov/artifactory/api/npm/npm'
+- task: Npm@1
+  name: npm_lint
+  displayName: 'Run Linting Against Code'
+  continueOnError: false
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'run lint'
+- task: Npm@1
+  name: npm_build
+  displayName: 'Build Client'
+  continueOnError: false
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'run build'
+- task: ArchiveFiles@1
+  displayName: 'Create Compressed Release Package'
+  inputs:
+    rootFolder: build
+    includeRootFolder: false
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.Repository.Name)-$(Build.BuildId).zip'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish release package'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(Build.Repository.Name)-$(Build.BuildId).zip'
+    ArtifactName: 'build'
+```
+
+With this build pipeline, our React application is built, compressed, and staged for deployment.
+
+It's also important to note that this build process is automatically triggered whenever changes are made to dev, master or a release branch.
+
+## Step Two: Deployment
+
+To begin the process for deployment, we must first script out each relevant task for deploying.
+
+Azure DevOps has Task Groups which lets us write and share generic tasks (like deploying a Create React App application) for deployment:
+
+<CaptionedImg src={taskgroup} caption="Simple two step deployment: delete old files and replace with new!" alt="picture of Azure DevOps tool for building Task Groups" />
+
+Simple enough. To trigger these tasks, we must build a pipeline that downloads the build artifact and runs this task group.
+
+<CaptionedImg src={pipeline} caption="Showing off that simple pipeline" alt="picture of Azure DevOps tool for building Pipelines" />
+
+I've set this pipeline to trigger when changes are made to the master branch. Here we can configure our variables, such as network location, to ensure we deploy to the right server.
+
+Our organization is kind enough to supply us with on-premises agent pools that are easy to give permissions to for deployment.
+
+## What about our secrets?
+
+We've heard it time and time again: do not commit your passwords. Some even are against storing passwords as variables in the deployment pipeline.
+
+It makes sense considering those variables are plaintext and can be accessed if a user is accidentally given a role they shouldn't be given.
+
+To fix this problem, we've decided to use Azure KeyVault. Azure KeyVault lets us store our passwords securely in the cloud, though to access KeyVault from our on-premises server without a cert, we are required to use a client secret.
+
+To side step this trading of secrets for secrets, we've decided to store our client secret as an environment variable for our app pool. Only a couple people have access to our IIS Server, so it's added a layer of security not often found in development.
+
+Here is how we accessed our KeyVault in .NET. It only connects to KeyVault if the environment is non-local, otherwise it uses Visual Studio's User Secrets.
+
+``` csharp
+private static IWebHost BuildWebHost(string[] args)
+{
+    return WebHost.CreateDefaultBuilder(args)
+        .UseStartup<Startup>()
+        .ConfigureAppConfiguration((context, builder) =>
+        {
+            Log.Debug("Configuring App Configuration for Env:{EnvironmentName}",
+                context.HostingEnvironment.EnvironmentName);
+            GetBaseConfigurationBuilder(builder);
+
+            // Add Azure Key Vault
+            var builtConfig = builder.Build();
+            var keyVaultSection = builtConfig.GetSection("KeyVault");
+
+            var vault = keyVaultSection["Uri"];
+            var clientId = keyVaultSection["ClientId"];
+
+            if (!Debugger.IsAttached)
+            {
+                var clientSecret = Environment.GetEnvironmentVariable("getCloud_infoRelease:azureKeyVault:clientSecret");
+
+                builder.AddAzureKeyVault(
+                    vault,
+                    clientId,
+                    clientSecret
+                );
+            }
+            else
+            {
+                builder.AddUserSecrets<Startup>();
+            }
+        })
+
+        .UseSerilog()
+        .Build();
+}
+```
+
+... and there we have it! Our code can now run non-locally.
+
+</div>
